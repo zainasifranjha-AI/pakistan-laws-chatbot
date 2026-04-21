@@ -13,7 +13,7 @@ st.markdown("Pakistan ke labor laws ke baare mein koi bhi sawaal poochein!")
 st.divider()
 
 HF_TOKEN = os.getenv("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")
-
+st.write(f"Token exists: {HF_TOKEN is not None}")
 @st.cache_resource
 def initialize():
     vectorstore, embeddings = load_and_index_pdf("data/labor_law.pdf", HF_TOKEN)
