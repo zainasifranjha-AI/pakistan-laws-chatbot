@@ -2,8 +2,8 @@ import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEndpoint
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+from huggingface_hub import InferenceClient
 
 def load_and_index_pdf(pdf_path, hf_token):
     print("PDF load ho raha hai...")
@@ -19,42 +19,40 @@ def load_and_index_pdf(pdf_path, hf_token):
     print(f"Total chunks: {len(chunks)}")
 
     print("Embeddings ban rahi hain...")
-    embeddings = HuggingFaceInferenceAPIEmbeddings(
-        api_key=hf_token,
-        model_name="sentence-transformers/paraphrase-MiniLM-L3-v2"
+    embeddings = HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2"
     )
 
     print("Vector database ban raha hai...")
     vectorstore = FAISS.from_documents(chunks, embeddings)
-    vectorstore.save_local("faiss_index")
-    print("Done! Index save ho gaya ✅")
+    print("Done! ✅")
     return vectorstore, embeddings
 
 def get_qa_chain(vectorstore, hf_token):
-    llm = HuggingFaceEndpoint(
-        repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-        huggingfacehub_api_token=hf_token,
-        temperature=0.3,
-        max_new_tokens=512
+    client = InferenceClient(
+        model="Qwen/Qwen2.5-72B-Instruct",
+        token=hf_token
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
     def answer_question(question):
         docs = retriever.invoke(question)
         context = "\n\n".join([doc.page_content for doc in docs])
-        prompt = f"""You are a Pakistan laws expert. Analyze the user's question language/style and respond in the SAME language and tone:
-- If question is in Urdu → answer in Urdu
-- If question is in English → answer in English
-- If question is in Roman Urdu → answer in Roman Urdu
-- Always match user's tone
+        prompt = f"""You are a Pakistan laws expert. Respond in SAME language as question.
+- Urdu question → Urdu answer
+- English question → English answer
+- Roman Urdu → Roman Urdu answer
 
 Context:
 {context}
 
 Question: {question}
 
-Answer (same language as question):"""
-        response = llm.invoke(prompt)
-        return response
+Answer:"""
+        response = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=512
+        )
+        return response.choices[0].message.content
 
     return answer_question
