@@ -12,12 +12,12 @@ st.title("⚖️ Pakistan Laws Chatbot")
 st.markdown("Pakistan ke labor laws ke baare mein koi bhi sawaal poochein!")
 st.divider()
 
-API_KEY = os.getenv("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")
+HF_TOKEN = os.getenv("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")
 
 @st.cache_resource
 def initialize():
-    vectorstore, embeddings = load_and_index_pdf("data/labor_law.pdf")
-    answer = get_qa_chain(vectorstore, API_KEY)
+    vectorstore, embeddings = load_and_index_pdf("data/labor_law.pdf", HF_TOKEN)
+    answer = get_qa_chain(vectorstore, HF_TOKEN)
     return answer
 
 with st.spinner("Laws database load ho raha hai..."):

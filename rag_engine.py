@@ -2,11 +2,10 @@ import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_huggingface import HuggingFaceEndpoint
-from langchain_core.messages import HumanMessage
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 
-def load_and_index_pdf(pdf_path):
+def load_and_index_pdf(pdf_path, hf_token):
     print("PDF load ho raha hai...")
     loader = PyPDFLoader(pdf_path)
     documents = loader.load()
@@ -20,8 +19,9 @@ def load_and_index_pdf(pdf_path):
     print(f"Total chunks: {len(chunks)}")
 
     print("Embeddings ban rahi hain...")
-    embeddings = HuggingFaceEmbeddings(
-        model_name="paraphrase-MiniLM-L3-v2"
+    embeddings = HuggingFaceInferenceAPIEmbeddings(
+        api_key=hf_token,
+        model_name="sentence-transformers/paraphrase-MiniLM-L3-v2"
     )
 
     print("Vector database ban raha hai...")
@@ -30,10 +30,10 @@ def load_and_index_pdf(pdf_path):
     print("Done! Index save ho gaya ✅")
     return vectorstore, embeddings
 
-def get_qa_chain(vectorstore, api_key):
+def get_qa_chain(vectorstore, hf_token):
     llm = HuggingFaceEndpoint(
         repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-        huggingfacehub_api_token=api_key,
+        huggingfacehub_api_token=hf_token,
         temperature=0.3,
         max_new_tokens=512
     )
@@ -43,7 +43,6 @@ def get_qa_chain(vectorstore, api_key):
         docs = retriever.invoke(question)
         context = "\n\n".join([doc.page_content for doc in docs])
         prompt = f"""You are a Pakistan laws expert. Analyze the user's question language/style and respond in the SAME language and tone:
-
 - If question is in Urdu → answer in Urdu
 - If question is in English → answer in English
 - If question is in Roman Urdu → answer in Roman Urdu
