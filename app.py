@@ -12,7 +12,6 @@ st.title("⚖️ Pakistan Laws Chatbot")
 st.markdown("Pakistan ke labor laws ke baare mein koi bhi sawaal poochein!")
 st.divider()
 
-# API key environment se lo
 API_KEY = os.getenv("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")
 
 @st.cache_resource
